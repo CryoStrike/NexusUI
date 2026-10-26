@@ -43,8 +43,21 @@ local function import(name)
 end
 
 local WindowClass = import("Window")
+local LoaderClass = import("Loader")
 
-local Nexus = { Version = "0.1.0", Windows = {} }
+local Nexus = { Version = "0.2.0", Windows = {}, Loaders = {} }
+
+-- Shows the animated loading screen (optionally with a language picker) and yields until it is done.
+-- Returns the chosen language, or nil if the loader was closed early. See src/Loader.lua for the options.
+function Nexus:Load(options)
+	local loader = LoaderClass.new(options or {})
+	table.insert(self.Loaders, loader)
+	loader._onDestroy = function()
+		local i = table.find(self.Loaders, loader)
+		if i then table.remove(self.Loaders, i) end
+	end
+	return loader:Run()
+end
 
 function Nexus:CreateWindow(options)
 	local window = WindowClass.new(options or {})
@@ -57,6 +70,10 @@ function Nexus:CreateWindow(options)
 end
 
 function Nexus:Destroy()
+	for i = #self.Loaders, 1, -1 do
+		self.Loaders[i]:Destroy()
+	end
+	table.clear(self.Loaders)
 	for i = #self.Windows, 1, -1 do
 		self.Windows[i]:Destroy()
 	end

@@ -20,6 +20,9 @@ Window.__index = Window
 	Size       UDim2    offset size (clamped to the viewport)
 	ToggleKey  Enum.KeyCode  show/hide key              (default RightShift)
 	Theme      table    palette overrides { Background = Color3, ... }
+	Resizable  boolean  show a resize grip in the bottom-right corner (default false)
+	MinSize    Vector2  smallest size when resizing       (default 520 x 340)
+	MaxSize    Vector2  largest size when resizing        (default viewport - 40)
 ]]
 function Window.new(options)
 	local self = setmetatable({}, Window)
@@ -97,8 +100,62 @@ function Window.new(options)
 		b.MouseButton1Click:Connect(onClick)
 	end
 	headerButton("×", -12, function() self:Destroy() end)
-	headerButton("–", -46, function() self:Toggle(false) end)
+	headerButton("–", -46, function() self:Minimize() end)
 	Util.Draggable(header, main, self.Maid)
+
+	-- Optional resize grip (bottom-right). The top-left corner stays put while resizing.
+	if options.Resizable then
+		local minSize = options.MinSize or Vector2.new(520, 340)
+		local maxSize = options.MaxSize
+		local grip = Create("TextButton", {
+			Name = "ResizeGrip", AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -2, 1, -2), Size = UDim2.fromOffset(22, 22),
+			BackgroundTransparency = 1, Text = "", AutoButtonColor = false, ZIndex = 10, Parent = main,
+		})
+		local dots = {}
+		for _, p in ipairs({ Vector2.new(14, 14), Vector2.new(8, 14), Vector2.new(14, 8) }) do
+			local d = Create("Frame", {
+				Position = UDim2.fromOffset(p.X, p.Y), Size = UDim2.fromOffset(3, 3), BackgroundColor3 = T.Colors.SubText,
+				BorderSizePixel = 0, ZIndex = 11, Parent = grip,
+			})
+			Util.Corner(d, 2)
+			table.insert(dots, d)
+		end
+		local function tint(color)
+			for _, d in ipairs(dots) do Tween(d, { BackgroundColor3 = color }) end
+		end
+
+		local resizing, startMouse, startW, startH, startPos = false, nil, 0, 0, nil
+		grip.MouseEnter:Connect(function() tint(T.Colors.Accent) end)
+		grip.MouseLeave:Connect(function() if not resizing then tint(T.Colors.SubText) end end)
+		grip.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				resizing, startMouse = true, input.Position
+				startW, startH, startPos = main.Size.X.Offset, main.Size.Y.Offset, main.Position
+			end
+		end)
+		self.Maid:Give(UserInputService.InputChanged:Connect(function(input)
+			if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+				local delta = input.Position - startMouse
+				local cam2 = workspace.CurrentCamera
+				local vp = cam2 and cam2.ViewportSize or Vector2.new(1920, 1080)
+				local maxW = maxSize and maxSize.X or (vp.X - 40)
+				local maxH = maxSize and maxSize.Y or (vp.Y - 40)
+				local w = math.clamp(startW + delta.X, minSize.X, math.max(minSize.X, maxW))
+				local h = math.clamp(startH + delta.Y, minSize.Y, math.max(minSize.Y, maxH))
+				main.Size = UDim2.fromOffset(w, h)
+				main.Position = UDim2.new(
+					startPos.X.Scale, startPos.X.Offset + (w - startW) / 2,
+					startPos.Y.Scale, startPos.Y.Offset + (h - startH) / 2
+				)
+			end
+		end))
+		self.Maid:Give(UserInputService.InputEnded:Connect(function(input)
+			if resizing and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+				resizing = false
+				tint(T.Colors.SubText)
+			end
+		end))
+	end
 
 	self._pages = Create("Frame", {
 		Position = UDim2.fromOffset(SIDEBAR_W, HEADER_H), Size = UDim2.new(1, -SIDEBAR_W, 1, -HEADER_H),
@@ -106,6 +163,20 @@ function Window.new(options)
 	})
 
 	self.Notifier = Notifications.new(gui, T)
+
+	-- Small pill shown while the window is minimised; click it to restore.
+	local pill = Create("TextButton", {
+		Name = "MinimizedPill", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 14), Size = UDim2.fromOffset(170, 34),
+		BackgroundColor3 = T.Colors.Background, BackgroundTransparency = T.Transparency, BorderSizePixel = 0, AutoButtonColor = false,
+		Text = (options.Name or "NEXUS") .. "  -  Open", Font = Enum.Font.GothamBold, TextSize = 13, TextColor3 = T.Colors.Text,
+		Visible = false, ZIndex = 20, Parent = gui,
+	})
+	Util.Corner(pill, 17)
+	T:Bind(Util.Stroke(pill, T.Colors.Accent, 1.5, 0.35), "Color", "Accent")
+	pill.MouseEnter:Connect(function() Tween(pill, { BackgroundTransparency = 0 }) end)
+	pill.MouseLeave:Connect(function() Tween(pill, { BackgroundTransparency = T.Transparency }) end)
+	pill.MouseButton1Click:Connect(function() self:Toggle(true) end)
+	self._pill = pill
 
 	self.Maid:Give(UserInputService.InputBegan:Connect(function(input, processed)
 		if not processed and input.KeyCode == self.ToggleKey then self:Toggle() end
@@ -139,9 +210,18 @@ function Window:SetToggleKey(key)
 	if typeof(key) == "EnumItem" then self.ToggleKey = key end
 end
 
+-- Hide the window and show the small restore pill instead.
+function Window:Minimize()
+	self:Toggle(false)
+	self.Minimized = true
+	self._pill.Visible = true
+end
+
 function Window:Toggle(state)
 	if state == nil then state = not self.Visible end
 	self.Visible = state
+	self.Minimized = false
+	self._pill.Visible = false
 	if state then
 		self._main.Visible = true
 		self._scale.Scale = 0.94

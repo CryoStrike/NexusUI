@@ -6,7 +6,8 @@ A modular, object-oriented Luau UI library for Roblox script hubs. Dark glass lo
 
 ## Features
 
-- Window with draggable header, minimise / close, show-hide keybind, logo slot
+- Window with draggable header, optional resize grip, minimise (to a small restore pill) / close, show-hide keybind, logo slot
+- Animated loading screen with an optional language picker (`Nexus:Load`)
 - Tabs and titled sections
 - Toggle, Slider, Button, Dropdown (single + multi), Keybind, Text input, Label
 - Notifications (Info / Success / Warning / Error) with progress bar
@@ -37,13 +38,26 @@ Section:AddButton({ Name = "Notify", Callback = function()
 end })
 ```
 
-See [`examples/hub.lua`](examples/hub.lua) for a complete Main / Player / Settings hub.
+See [`examples/hub.lua`](examples/hub.lua) for a complete Main / Player / Settings hub, and
+[`examples/translucid_hub.lua`](examples/translucid_hub.lua) for the full showcase: loading screen, language picker,
+resizable window and the Combat / Character / Farm / Troll categories.
+
+```lua
+-- Loading screen + language picker (yields until the user presses Continue)
+local language = Nexus:Load({
+    Name = "NEXUS", Subtitle = "TRANSLUCID THEME", Icon = "...",
+    Steps = { "Initializing", "Loading modules", "Preparing interface" }, Duration = 3,
+    Languages = { "English", "Français", "Español" }, DefaultLanguage = "English",
+})
+if not language then return end
+```
 
 ## API
 
 | Call | Notes |
 |------|-------|
-| `Nexus:CreateWindow{ Name, Subtitle, Icon, Accent, Size, ToggleKey, Theme }` | returns `Window` |
+| `Nexus:Load{ Name, Subtitle, Icon, Accent, Steps, Duration, ReadyText, Languages, DefaultLanguage, LanguageTitle, LanguageLabel, ContinueText }` | yields, returns the chosen language (`nil` if closed early) |
+| `Nexus:CreateWindow{ Name, Subtitle, Icon, Accent, Size, ToggleKey, Theme, Resizable, MinSize, MaxSize }` | returns `Window` |
 | `Window:CreateTab(name, icon?)` | returns `Tab` |
 | `Tab:AddSection(name)` | returns `Section` (Tabs also accept components directly) |
 | `:AddToggle{ Name, Default, Flag, Callback(bool) }` | `el:Set(v, silent?)` |
@@ -55,6 +69,7 @@ See [`examples/hub.lua`](examples/hub.lua) for a complete Main / Player / Settin
 | `:AddLabel{ Text }` | `el:Set(text)` |
 | `Window:Notify{ Title, Content, Duration, Type }` | |
 | `Window:SetAccent(Color3)` / `Window:SetToggleKey(KeyCode)` / `Window:Toggle(bool?)` | |
+| `Window:Minimize()` | hides the window and shows a small pill; click it (or press the toggle key) to restore |
 | `Window:Destroy()` / `Nexus:Destroy()` | full cleanup |
 
 Every element has `.Value`, `:Set()`, `:Destroy()` and `.Frame`.
@@ -80,11 +95,13 @@ NexusUI/
 │  ├─ Window.lua       window shell, header, sidebar
 │  ├─ Tab.lua          tabs + sections
 │  ├─ Components.lua   toggle, slider, button, dropdown, keybind, input, label
+│  ├─ Loader.lua       loading screen + language picker
 │  ├─ Notifications.lua
 │  ├─ Theme.lua        palette + live accent listeners
 │  ├─ Util.lua         tweens, drag, instance helpers
 │  └─ Maid.lua         cleanup
 ├─ examples/hub.lua
+├─ examples/translucid_hub.lua
 ├─ assets/nexus-ico.png
 └─ LICENSE
 ```
