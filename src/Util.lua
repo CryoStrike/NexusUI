@@ -91,23 +91,63 @@ end
 
 -- Accepts "rbxassetid://123" (returned as is) or an https URL
 -- (downloaded once and converted with getcustomasset when the executor supports it).
+local PNG_SIGNATURE = "\137PNG\r\n\26\n"
+local warnedUnsupported = false
+
+-- Downloaded images are cached as NexusUI/<name>.<ext>. A cached file that is not a real PNG
+-- (e.g. an old HTML error page) is downloaded again. Problems are reported with warn().
 function Util.GetAsset(src)
 	if type(src) ~= "string" or src == "" then return "" end
 	if not src:match("^https?://") then return src end
 
-	if writefile and getcustomasset and isfile then
-		local safe = (src:sub(-24):gsub("%W", "_"))
-		local path = "NexusUI/" .. safe
-		if makefolder and isfolder and not isfolder("NexusUI") then pcall(makefolder, "NexusUI") end
-		if not isfile(path) then
-			local ok, data = pcall(function() return game:HttpGet(src) end)
-			if ok then pcall(writefile, path, data) end
+	if not (writefile and getcustomasset and isfile) then
+		if not warnedUnsupported then
+			warnedUnsupported = true
+			warn("[Nexus] image links need writefile, isfile and getcustomasset, which this executor lacks. Use an rbxassetid:// image instead.")
 		end
-		if isfile(path) then
-			local ok, asset = pcall(getcustomasset, path)
-			if ok then return asset end
+		return ""
+	end
+
+	local ext = src:match("%.(%w+)$") or "png"
+	local name = (src:gsub("^https?://", ""):gsub("%W", "_"))
+	local path = "NexusUI/" .. name:sub(-60) .. "." .. ext:lower()
+	local isPng = ext:lower() == "png"
+
+	local function valid(data)
+		if type(data) ~= "string" or #data < 8 then return false end
+		return (not isPng) or data:sub(1, 8) == PNG_SIGNATURE
+	end
+
+	if makefolder then
+		local exists = isfolder and isfolder("NexusUI")
+		if not exists then pcall(makefolder, "NexusUI") end
+	end
+
+	local needDownload = true
+	if isfile(path) then
+		if readfile then
+			local ok, existing = pcall(readfile, path)
+			needDownload = not (ok and valid(existing))
+		else
+			needDownload = false
 		end
 	end
+	if needDownload then
+		local ok, data = pcall(function() return game:HttpGet(src) end)
+		if not (ok and valid(data)) then
+			warn("[Nexus] could not download image: " .. src)
+			return ""
+		end
+		local wrote, err = pcall(writefile, path, data)
+		if not wrote then
+			warn("[Nexus] could not save image (" .. tostring(err) .. "): " .. path)
+			return ""
+		end
+	end
+
+	local ok, asset = pcall(getcustomasset, path)
+	if ok and asset then return asset end
+	warn("[Nexus] getcustomasset failed for " .. path .. ": " .. tostring(asset))
 	return ""
 end
 

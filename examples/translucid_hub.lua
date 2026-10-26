@@ -23,6 +23,9 @@ local DEMO_KEY = "NEXUS-DEMO" -- demo only: replace with your own key check
 -- Downloading them needs writefile + isfile + getcustomasset. Without those the tabs are text-only.
 -- To use Roblox images instead, replace the return value with "rbxassetid://<image id>".
 local CAN_ICON = writefile ~= nil and isfile ~= nil and getcustomasset ~= nil
+if not CAN_ICON then
+	warn("[NEXUS] this executor lacks writefile/isfile/getcustomasset: tab icons are off (use rbxassetid:// icons instead).")
+end
 local function icon(name)
 	if CAN_ICON then return REPO .. "assets/icons/" .. name .. ".png" end
 	return nil
