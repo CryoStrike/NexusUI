@@ -18,6 +18,16 @@ local lp = Players.LocalPlayer
 
 local DEMO_KEY = "NEXUS-DEMO" -- demo only: replace with your own key check
 
+--------------------------------------------------------------- Tab icons
+-- White PNGs in assets/icons/ (NEXUS tints them: grey, or the accent colour when selected).
+-- Downloading them needs writefile + isfile + getcustomasset. Without those the tabs are text-only.
+-- To use Roblox images instead, replace the return value with "rbxassetid://<image id>".
+local CAN_ICON = writefile ~= nil and isfile ~= nil and getcustomasset ~= nil
+local function icon(name)
+	if CAN_ICON then return REPO .. "assets/icons/" .. name .. ".png" end
+	return nil
+end
+
 --------------------------------------------------------------- Localisation
 local LANGUAGES = { "English", "Français", "Español", "Deutsch", "Português" }
 
@@ -134,7 +144,7 @@ local function build(rebuilt)
 	})
 
 	----------------------------------------------------------- Combat
-	local Combat = Window:CreateTab(tr("tab_combat"))
+	local Combat = Window:CreateTab(tr("tab_combat"), icon("combat"))
 	Combat:AddToggle({
 		Name = tr("combat_module"), Default = false, Flag = "combat_module",
 		Callback = function(on) print("Combat module:", on) end,
@@ -153,7 +163,7 @@ local function build(rebuilt)
 	})
 
 	----------------------------------------------------------- Character
-	local Character = Window:CreateTab(tr("tab_character"))
+	local Character = Window:CreateTab(tr("tab_character"), icon("character"))
 	Character:AddSlider({
 		Name = tr("walk_speed"), Min = 16, Max = 100, Default = 16, Increment = 1, Flag = "walk_speed",
 		Callback = function(v) print("Walk speed:", v) end,
@@ -172,7 +182,7 @@ local function build(rebuilt)
 	})
 
 	----------------------------------------------------------- Farm
-	local Farm = Window:CreateTab(tr("tab_farm"))
+	local Farm = Window:CreateTab(tr("tab_farm"), icon("farm"))
 	Farm:AddToggle({
 		Name = tr("farm_toggle"), Default = false, Flag = "farm_toggle",
 		Callback = function(on) print("Auto farm:", on) end,
@@ -191,7 +201,7 @@ local function build(rebuilt)
 	})
 
 	----------------------------------------------------------- Troll
-	local Troll = Window:CreateTab(tr("tab_troll"))
+	local Troll = Window:CreateTab(tr("tab_troll"), icon("troll"))
 	Troll:AddToggle({
 		Name = tr("troll_module"), Default = false, Flag = "troll_module",
 		Callback = function(on) print("Troll module:", on) end,
@@ -214,7 +224,7 @@ local function build(rebuilt)
 	})
 
 	----------------------------------------------------------- Visuals
-	local Visuals = Window:CreateTab(tr("tab_visuals"))
+	local Visuals = Window:CreateTab(tr("tab_visuals"), icon("visuals"))
 	local Display = Visuals:AddSection(tr("sec_display"))
 	Display:AddToggle({
 		Name = tr("highlight"), Default = false, Flag = "highlight",
@@ -238,7 +248,7 @@ local function build(rebuilt)
 	})
 
 	----------------------------------------------------------- Settings
-	local Settings = Window:CreateTab(tr("tab_settings"))
+	local Settings = Window:CreateTab(tr("tab_settings"), icon("settings"))
 	local Interface = Settings:AddSection(tr("sec_interface"))
 	Interface:AddKeybind({
 		Name = tr("hide_key"), Default = state.toggleKey,
@@ -281,7 +291,7 @@ local function build(rebuilt)
 	})
 
 	----------------------------------------------------------- About
-	local About = Window:CreateTab(tr("tab_about"))
+	local About = Window:CreateTab(tr("tab_about"), icon("about"))
 	local Info = About:AddSection(tr("about_title"))
 	Info:AddLabel({ Text = string.format(tr("about_version"), tostring(Nexus.Version)) })
 	Info:AddLabel({ Text = string.format(tr("about_signed"), lp.DisplayName, lp.Name) })

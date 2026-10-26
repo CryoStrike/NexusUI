@@ -103,6 +103,7 @@ NexusUI/
 ├─ examples/hub.lua
 ├─ examples/translucid_hub.lua
 ├─ assets/nexus-ico.png
+├─ assets/icons/       white tab icons used by translucid_hub.lua
 └─ LICENSE
 ```
 
