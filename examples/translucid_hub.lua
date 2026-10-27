@@ -42,7 +42,7 @@ local STRINGS = {
 		walk_speed = "Walk Speed", jump_power = "Jump Power", anti_afk = "Anti-AFK", reset_char = "Reset Character",
 		farm_toggle = "Auto Farm", farm_mode = "Farm Mode", farm_delay = "Farm Delay", target_name = "Target Name", target_ph = "Enter a name...",
 		troll_module = "Troll Module", effect = "Effect", intensity = "Intensity", run_effect = "Run Effect", stop_all = "Stop All",
-		sec_display = "Display", highlight = "Highlight", fov = "Field of View", style = "Style", sec_theme = "Theme", accent = "Accent Colour",
+		highlight_color = "Highlight Colour", custom_accent = "Custom Accent", sec_display = "Display", highlight = "Highlight", fov = "Field of View", style = "Style", sec_theme = "Theme", accent = "Accent Colour",
 		sec_interface = "Interface", hide_key = "Hide Hub Key", minimize = "Minimize Hub", language = "Language", unload = "Unload NEXUS",
 		resize_hint = "Drag the bottom-right corner to resize the hub.",
 		sec_keysystem = "Key System", license_key = "License Key", license_ph = "Enter your key...", key_system = "Key System",
@@ -57,7 +57,7 @@ local STRINGS = {
 		walk_speed = "Vitesse de marche", jump_power = "Puissance de saut", anti_afk = "Anti-AFK", reset_char = "Réinitialiser le personnage",
 		farm_toggle = "Auto Farm", farm_mode = "Mode de farm", farm_delay = "Délai de farm", target_name = "Nom de la cible", target_ph = "Entrez un nom...",
 		troll_module = "Module Troll", effect = "Effet", intensity = "Intensité", run_effect = "Lancer l'effet", stop_all = "Tout arrêter",
-		sec_display = "Affichage", highlight = "Surbrillance", fov = "Champ de vision", style = "Style", sec_theme = "Thème", accent = "Couleur d'accent",
+		highlight_color = "Couleur de surbrillance", custom_accent = "Accent personnalisé", sec_display = "Affichage", highlight = "Surbrillance", fov = "Champ de vision", style = "Style", sec_theme = "Thème", accent = "Couleur d'accent",
 		sec_interface = "Interface", hide_key = "Touche pour masquer", minimize = "Réduire le hub", language = "Langue", unload = "Décharger NEXUS",
 		resize_hint = "Faites glisser le coin inférieur droit pour redimensionner.",
 		sec_keysystem = "Système de clé", license_key = "Clé de licence", license_ph = "Entrez votre clé...", key_system = "Système de clé",
@@ -72,7 +72,7 @@ local STRINGS = {
 		walk_speed = "Velocidad de caminar", jump_power = "Fuerza de salto", anti_afk = "Anti-AFK", reset_char = "Reiniciar personaje",
 		farm_toggle = "Auto Farm", farm_mode = "Modo de farmeo", farm_delay = "Retraso de farmeo", target_name = "Nombre del objetivo", target_ph = "Introduce un nombre...",
 		troll_module = "Módulo Troll", effect = "Efecto", intensity = "Intensidad", run_effect = "Ejecutar efecto", stop_all = "Detener todo",
-		sec_display = "Pantalla", highlight = "Resaltado", fov = "Campo de visión", style = "Estilo", sec_theme = "Tema", accent = "Color de acento",
+		highlight_color = "Color de resaltado", custom_accent = "Acento personalizado", sec_display = "Pantalla", highlight = "Resaltado", fov = "Campo de visión", style = "Estilo", sec_theme = "Tema", accent = "Color de acento",
 		sec_interface = "Interfaz", hide_key = "Tecla para ocultar", minimize = "Minimizar hub", language = "Idioma", unload = "Descargar NEXUS",
 		resize_hint = "Arrastra la esquina inferior derecha para cambiar el tamaño.",
 		sec_keysystem = "Sistema de clave", license_key = "Clave de licencia", license_ph = "Introduce tu clave...", key_system = "Sistema de clave",
@@ -87,7 +87,7 @@ local STRINGS = {
 		walk_speed = "Laufgeschwindigkeit", jump_power = "Sprungkraft", anti_afk = "Anti-AFK", reset_char = "Charakter zurücksetzen",
 		farm_toggle = "Auto-Farm", farm_mode = "Farm-Modus", farm_delay = "Farm-Verzögerung", target_name = "Zielname", target_ph = "Namen eingeben...",
 		troll_module = "Troll-Modul", effect = "Effekt", intensity = "Intensität", run_effect = "Effekt ausführen", stop_all = "Alles stoppen",
-		sec_display = "Anzeige", highlight = "Hervorhebung", fov = "Sichtfeld", style = "Stil", sec_theme = "Design", accent = "Akzentfarbe",
+		highlight_color = "Hervorhebungsfarbe", custom_accent = "Eigene Akzentfarbe", sec_display = "Anzeige", highlight = "Hervorhebung", fov = "Sichtfeld", style = "Stil", sec_theme = "Design", accent = "Akzentfarbe",
 		sec_interface = "Oberfläche", hide_key = "Taste zum Ausblenden", minimize = "Hub minimieren", language = "Sprache", unload = "NEXUS entladen",
 		resize_hint = "Ziehe die untere rechte Ecke, um die Größe zu ändern.",
 		sec_keysystem = "Schlüsselsystem", license_key = "Lizenzschlüssel", license_ph = "Schlüssel eingeben...", key_system = "Schlüsselsystem",
@@ -102,7 +102,7 @@ local STRINGS = {
 		walk_speed = "Velocidade de caminhada", jump_power = "Força do pulo", anti_afk = "Anti-AFK", reset_char = "Reiniciar personagem",
 		farm_toggle = "Auto Farm", farm_mode = "Modo de farm", farm_delay = "Atraso do farm", target_name = "Nome do alvo", target_ph = "Digite um nome...",
 		troll_module = "Módulo Troll", effect = "Efeito", intensity = "Intensidade", run_effect = "Executar efeito", stop_all = "Parar tudo",
-		sec_display = "Exibição", highlight = "Destaque", fov = "Campo de visão", style = "Estilo", sec_theme = "Tema", accent = "Cor de destaque",
+		highlight_color = "Cor do destaque", custom_accent = "Cor de destaque personalizada", sec_display = "Exibição", highlight = "Destaque", fov = "Campo de visão", style = "Estilo", sec_theme = "Tema", accent = "Cor de destaque",
 		sec_interface = "Interface", hide_key = "Tecla para ocultar", minimize = "Minimizar hub", language = "Idioma", unload = "Descarregar NEXUS",
 		resize_hint = "Arraste o canto inferior direito para redimensionar.",
 		sec_keysystem = "Sistema de chave", license_key = "Chave de licença", license_ph = "Digite sua chave...", key_system = "Sistema de chave",
@@ -116,6 +116,7 @@ local state = {
 	language = "English",
 	toggleKey = Enum.KeyCode.RightShift,
 	accentName = "Cyan",
+	customAccent = nil, -- set when the colour picker is used
 }
 local ACCENTS = {
 	Cyan = Color3.fromRGB(0, 170, 255), Violet = Color3.fromRGB(150, 110, 255),
@@ -139,7 +140,7 @@ local function build(rebuilt)
 		Name = "NEXUS",
 		Subtitle = "TRANSLUCID THEME",
 		Icon = REPO .. "assets/nexus-ico.png", -- or "rbxassetid://<uploaded logo id>"
-		Accent = ACCENTS[state.accentName],
+		Accent = state.customAccent or ACCENTS[state.accentName],
 		ToggleKey = state.toggleKey,
 		Size = UDim2.fromOffset(700, 500),
 		Resizable = true,
@@ -237,6 +238,10 @@ local function build(rebuilt)
 		Name = tr("fov"), Min = 40, Max = 120, Default = 70, Increment = 1, Suffix = "°", Flag = "fov",
 		Callback = function(v) print("FOV:", v) end,
 	})
+	Display:AddColorPicker({
+		Name = tr("highlight_color"), Default = Color3.fromRGB(152, 35, 205), Alpha = true, Flag = "highlight_color",
+		Callback = function(color, alpha) print("Highlight colour:", color, "alpha:", alpha) end,
+	})
 	Display:AddDropdown({
 		Name = tr("style"), Options = { "Balanced", "Performance", "Quality" }, Default = "Balanced",
 		Callback = function(v) print("Style:", v) end,
@@ -246,7 +251,15 @@ local function build(rebuilt)
 		Name = tr("accent"), Options = { "Cyan", "Violet", "Emerald", "Crimson", "Gold" }, Default = state.accentName,
 		Callback = function(name)
 			state.accentName = name
+			state.customAccent = nil
 			Window:SetAccent(ACCENTS[name])
+		end,
+	})
+	Theming:AddColorPicker({
+		Name = tr("custom_accent"), Default = state.customAccent or ACCENTS[state.accentName],
+		Callback = function(color)
+			state.customAccent = color
+			Window:SetAccent(color)
 		end,
 	})
 

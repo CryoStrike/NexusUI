@@ -10,6 +10,7 @@ A modular, object-oriented Luau UI library for Roblox script hubs. Dark glass lo
 - Animated loading screen with an optional language picker (`Nexus:Load`)
 - Tabs and titled sections
 - Toggle, Slider, Button, Dropdown (single + multi), Keybind, Text input, Label
+- Colour picker: hue ring, saturation/brightness disc, optional alpha bar, hex + RGB inputs (pure Instances, no images)
 - Notifications (Info / Success / Warning / Error) with progress bar
 - Live accent switching (`Window:SetAccent`)
 - Flags registry: `Window.Flags.my_flag.Value`
@@ -66,6 +67,7 @@ if not language then return end
 | `:AddDropdown{ Name, Options, Default, Multi, Flag, Callback(v)}` | `el:Set`, `el:SetOptions(list)` |
 | `:AddKeybind{ Name, Default, Callback(key), OnChanged(key) }` | click, then press a key (Backspace clears) |
 | `:AddInput{ Name, Placeholder, Default, ClearOnFocus, Callback(text, enter) }` | |
+| `:AddColorPicker{ Name, Default, Alpha, DefaultAlpha, Open, Flag, Callback(color, alpha) }` | `el.Value` (Color3), `el.Alpha`, `el:Set(Color3 or "#RRGGBB", silent?)`, `el:SetAlpha(n, silent?)`, `el:Open(bool?)` |
 | `:AddLabel{ Text }` | `el:Set(text)` |
 | `Window:Notify{ Title, Content, Duration, Type }` | |
 | `Window:SetAccent(Color3)` / `Window:SetToggleKey(KeyCode)` / `Window:Toggle(bool?)` | |
