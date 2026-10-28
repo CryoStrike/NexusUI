@@ -1,85 +1,70 @@
 --[[
-	NEXUS UI  -  Translucid Theme
-	Loader / entry point.
+	NEXUS UI  -  init.lua      (the LAUNCHER: run this one)
 
-	Usage:
-		local Nexus = loadstring(game:HttpGet("https://raw.githubusercontent.com/CryoStrike/NexusUI/main/init.lua"))()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/CryoStrike/NexusUI/main/init.lua"))()
 
-	Dev options (set BEFORE loading):
-		getgenv().NEXUS_BASE  = "https://raw.githubusercontent.com/<user>/<repo>/<branch>/"
-		getgenv().NEXUS_LOCAL = true   -- read modules from <workspace>/NexusUI/src/*.lua
+	What it does, in order:
+		1. Library.lua   loads the UI library (also removes a previous NEXUS if you run the script twice)
+		2. language.lua  loads the texts + languages                 -> edit it to translate / add a language
+		3. hub.lua       loads the hub UI (categories, buttons ...)  -> edit it to change the hub
+		4. shows the loading screen + language picker, then opens the hub
+
+	Dev options (set BEFORE running):
+		getgenv().NEXUS_BASE  = "https://raw.githubusercontent.com/<user>/<repo>/<branch>/"   -- test another branch / fork
+		getgenv().NEXUS_LOCAL = true   -- read every script from <workspace>/NexusUI/ instead of GitHub
 ]]
 
 local env = (getgenv and getgenv()) or _G
-
 local BASE = env.NEXUS_BASE or "https://raw.githubusercontent.com/CryoStrike/NexusUI/main/"
 local LOCAL = env.NEXUS_LOCAL == true
 
--- Remove a previous instance (re-execution safe)
-if env.NexusUI then
-	pcall(function() env.NexusUI:Destroy() end)
-	env.NexusUI = nil
-end
+-- Settings shared with hub.lua (and used by the loading screen below)
+local Config = {
+	Repo = BASE,
+	Name = "NEXUS",
+	Subtitle = "TRANSLUCID THEME",
+	Icon = BASE .. "assets/nexus-ico.png", -- or "rbxassetid://<uploaded logo id>"
+}
 
-local cache = {}
-
-local function import(name)
-	if cache[name] ~= nil then return cache[name] end
-
+-- Download (or read, in local mode) one script, run it and return what it returns.
+-- Extra arguments are handed to the script as `...`.
+local function run(path, ...)
 	local ok, source
 	if LOCAL then
-		ok, source = pcall(readfile, "NexusUI/src/" .. name .. ".lua")
+		ok, source = pcall(readfile, "NexusUI/" .. path)
 	else
-		ok, source = pcall(function() return game:HttpGet(BASE .. "src/" .. name .. ".lua") end)
+		ok, source = pcall(function() return game:HttpGet(BASE .. path) end)
 	end
-	assert(ok and type(source) == "string", "[Nexus] failed to fetch module '" .. name .. "'")
+	assert(ok and type(source) == "string", "[Nexus] failed to fetch '" .. path .. "'")
 
-	local fn, err = loadstring(source, "=Nexus/" .. name)
-	assert(fn, "[Nexus] syntax error in '" .. name .. "': " .. tostring(err))
-
-	local result = fn(import) -- every module receives `import` as its first vararg
-	cache[name] = result
-	return result
+	local fn, err = loadstring(source, "=Nexus/" .. path)
+	assert(fn, "[Nexus] syntax error in '" .. path .. "': " .. tostring(err))
+	return fn(...)
 end
 
-local WindowClass = import("Window")
-local LoaderClass = import("Loader")
+local Nexus    = run("Library.lua")
+local Language = run("language.lua")
+local Hub      = run("hub.lua", Nexus, Language, Config)
 
-local Nexus = { Version = "0.2.0", Windows = {}, Loaders = {} }
-
--- Shows the animated loading screen (optionally with a language picker) and yields until it is done.
--- Returns the chosen language, or nil if the loader was closed early. See src/Loader.lua for the options.
-function Nexus:Load(options)
-	local loader = LoaderClass.new(options or {})
-	table.insert(self.Loaders, loader)
-	loader._onDestroy = function()
-		local i = table.find(self.Loaders, loader)
-		if i then table.remove(self.Loaders, i) end
-	end
-	return loader:Run()
+-- Tell the developer about untranslated texts (nothing breaks, English is shown instead)
+for _, problem in ipairs(Language.Validate()) do
+	warn("[Nexus] language: " .. problem)
 end
 
-function Nexus:CreateWindow(options)
-	local window = WindowClass.new(options or {})
-	table.insert(self.Windows, window)
-	window._onDestroy = function()
-		local i = table.find(self.Windows, window)
-		if i then table.remove(self.Windows, i) end
-	end
-	return window
-end
+-- Loading animation, then the language picker. Yields until the user presses Continue.
+local chosen = Nexus:Load({
+	Name = Config.Name,
+	Subtitle = Config.Subtitle,
+	Icon = Config.Icon,
+	Accent = Hub.Accent,
+	Steps = { "Initializing", "Loading modules", "Preparing interface" },
+	Duration = 3,
+	Languages = Language.List,
+	DefaultLanguage = Language.Default,
+	LanguageTitle = "Select language",
+	ContinueText = "Continue",
+})
+if not chosen then return end -- loader was closed (e.g. the script was re-executed)
 
-function Nexus:Destroy()
-	for i = #self.Loaders, 1, -1 do
-		self.Loaders[i]:Destroy()
-	end
-	table.clear(self.Loaders)
-	for i = #self.Windows, 1, -1 do
-		self.Windows[i]:Destroy()
-	end
-	table.clear(self.Windows)
-	if env.NexusUI == self then env.NexusUI = nil end
-end
-
-env.NexusUI = Nexus
-return Nexus
+Language.set(chosen)
+Hub.Build()

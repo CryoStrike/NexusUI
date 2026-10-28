@@ -1,6 +1,6 @@
 -- NEXUS example hub: Main / Player / Settings
 local REPO = "https://raw.githubusercontent.com/CryoStrike/NexusUI/main/"
-local Nexus = loadstring(game:HttpGet(REPO .. "init.lua"))()
+local Nexus = loadstring(game:HttpGet(REPO .. "Library.lua"))()
 
 local Players = game:GetService("Players")
 local lp = Players.LocalPlayer

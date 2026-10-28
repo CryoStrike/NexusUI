@@ -17,10 +17,25 @@ A modular, object-oriented Luau UI library for Roblox script hubs. Dark glass lo
 - `Maid`-based cleanup: `Window:Destroy()` / `Nexus:Destroy()`; re-executing the script removes the old instance
 - Works with `gethui` / CoreGui / PlayerGui fallback
 
-## Quick start
+## Run the hub
 
 ```lua
-local Nexus = loadstring(game:HttpGet("https://raw.githubusercontent.com/CryoStrike/NexusUI/main/init.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/CryoStrike/NexusUI/main/init.lua"))()
+```
+
+The project is split into a few scripts, each with one job:
+
+| Script | Job | Edit it to... |
+|--------|-----|---------------|
+| `init.lua` | launcher: loads the others, shows the loading screen + language picker, opens the hub | change the loading screen or the window title/logo |
+| `language.lua` | every text of the hub + the list of languages | translate, add a text, add a language |
+| `hub.lua` | the hub UI: one function per category | add or edit categories, buttons, sliders, toggles, icons |
+| `Library.lua` | the UI library (loads `src/*.lua`) | rarely: only to change the library itself |
+
+## Use the library in your own script
+
+```lua
+local Nexus = loadstring(game:HttpGet("https://raw.githubusercontent.com/CryoStrike/NexusUI/main/Library.lua"))()
 
 local Window = Nexus:CreateWindow({
     Name = "NEXUS",
@@ -39,9 +54,9 @@ Section:AddButton({ Name = "Notify", Callback = function()
 end })
 ```
 
-See [`examples/hub.lua`](examples/hub.lua) for a complete Main / Player / Settings hub, and
-[`examples/translucid_hub.lua`](examples/translucid_hub.lua) for the full showcase: loading screen, language picker,
-resizable window and the Combat / Character / Farm / Troll categories.
+See [`examples/basic.lua`](examples/basic.lua) for a small Main / Player / Settings hub, and
+[`hub.lua`](hub.lua) for the full showcase: resizable window and the Combat / Character / Farm / Troll categories
+(started by `init.lua` after the loading screen and language picker).
 
 ```lua
 -- Loading screen + language picker (yields until the user presses Continue)
@@ -83,16 +98,23 @@ Pass `Icon` as `rbxassetid://<id>` (upload the logo to Roblox) or as an https UR
 ## Development
 
 ```lua
--- copy this repo to <workspace>/NexusUI/, then:
+-- copy this repo to <workspace>/NexusUI/, then run the whole hub from your local files:
 getgenv().NEXUS_LOCAL = true
-local Nexus = loadstring(readfile("NexusUI/init.lua"))()
+loadstring(readfile("NexusUI/init.lua"))()
+
+-- or test another branch / fork on GitHub:
+getgenv().NEXUS_BASE = "https://raw.githubusercontent.com/CryoStrike/NexusUI/<branch>/"
+loadstring(game:HttpGet(getgenv().NEXUS_BASE .. "init.lua"))()
 ```
 
 ## Structure
 
 ```
 NexusUI/
-├─ init.lua            loader + public API
+├─ init.lua            launcher: loading screen, language picker, opens the hub
+├─ language.lua        texts + languages  (tr("key"))
+├─ hub.lua             the hub UI: categories, buttons, sliders ...
+├─ Library.lua         library loader + public API (Nexus:CreateWindow, Nexus:Load ...)
 ├─ src/
 │  ├─ Window.lua       window shell, header, sidebar
 │  ├─ Tab.lua          tabs + sections
@@ -102,10 +124,10 @@ NexusUI/
 │  ├─ Theme.lua        palette + live accent listeners
 │  ├─ Util.lua         tweens, drag, instance helpers
 │  └─ Maid.lua         cleanup
-├─ examples/hub.lua
-├─ examples/translucid_hub.lua
+├─ examples/basic.lua  small library-only example
+├─ examples/translucid_hub.lua  old link, now just runs init.lua
 ├─ assets/nexus-ico.png
-├─ assets/icons/       white tab icons used by translucid_hub.lua
+├─ assets/icons/       white tab icons used by hub.lua
 └─ LICENSE
 ```
 
