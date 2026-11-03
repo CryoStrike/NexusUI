@@ -28,7 +28,7 @@ Window.__index = Window
 	Resizable  boolean  show a resize grip in the bottom-right corner (default false)
 	MinSize    Vector2  smallest size when resizing       (default 520 x 340)
 	MaxSize    Vector2  largest size when resizing        (default viewport - 40)
-	TabHeight  number   fixed height of a category tile       (default: automatic, tiles share the sidebar height, 52-76)
+	TabHeight  number   fixed height of a category tile       (default: automatic, tiles share the sidebar height, 46-76)
 	Footer     string   status line at the bottom-left (RichText allowed, e.g. 'STATUS: <font color="rgb(0,224,255)">ACTIVE</font>')
 ]]
 function Window.new(options)
@@ -233,7 +233,7 @@ function Window:_LayoutTabs()
 	local h = self._tabHeight
 	if not h then
 		local avail = self._main.Size.Y.Offset - self._listTop - FOOTER_H - 12 - 6 * (n - 1)
-		h = math.clamp(math.floor(avail / n), 52, 76)
+		h = math.clamp(math.floor(avail / n), 46, 76)
 	end
 	for _, t in ipairs(self.Tabs) do t:_SetHeight(h) end
 end
