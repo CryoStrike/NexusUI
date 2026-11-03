@@ -72,8 +72,8 @@ if not language then return end
 
 | Call | Notes |
 |------|-------|
-| `Nexus:Load{ Name, Subtitle, Icon, Accent, Steps, Duration, ReadyText, Languages, DefaultLanguage, LanguageTitle, LanguageLabel, ContinueText }` | yields, returns the chosen language (`nil` if closed early) |
-| `Nexus:CreateWindow{ Name, Subtitle, Icon, Accent, Size, ToggleKey, Theme, Resizable, MinSize, MaxSize }` | returns `Window` |
+| `Nexus:Load{ Name, Subtitle, Icon, Accent, Steps, Duration, ReadyText, ProgressText, Languages, DefaultLanguage, LanguageTitle, LanguageLabel, ContinueText }` | yields, returns the chosen language (`nil` if closed early) |
+| `Nexus:CreateWindow{ Name, Subtitle, Icon, Accent, Size, ToggleKey, Theme, Resizable, MinSize, MaxSize, TabHeight, Footer }` | returns `Window` |
 | `Window:CreateTab(name, icon?)` | returns `Tab` |
 | `Tab:AddSection(name)` | returns `Section` (Tabs also accept components directly) |
 | `:AddToggle{ Name, Default, Flag, Callback(bool) }` | `el:Set(v, silent?)` |

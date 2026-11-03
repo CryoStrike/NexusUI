@@ -21,18 +21,18 @@ local function Item(ctx, parent, height)
 	local f = Create("Frame", {
 		Size = UDim2.new(1, 0, 0, height or 38),
 		BackgroundColor3 = T.Colors.Surface2,
-		BackgroundTransparency = 0.35,
+		BackgroundTransparency = 0.4,
 		BorderSizePixel = 0,
 		Parent = parent,
 	})
-	Util.Corner(f, 8)
-	Util.Stroke(f, T.Colors.Stroke, 1, 0.65)
+	Util.Corner(f, 10)
+	Util.Stroke(f, T.Colors.Stroke, 1, 0.45)
 	return f
 end
 
 local function Label(ctx, parent, text, props)
 	local p = {
-		BackgroundTransparency = 1, Text = text or "", Font = Enum.Font.GothamMedium, TextSize = 14,
+		BackgroundTransparency = 1, Text = text or "", Font = ctx.Theme.Fonts.Text, TextSize = 15,
 		TextColor3 = ctx.Theme.Colors.Text, TextXAlignment = Enum.TextXAlignment.Left, Parent = parent,
 	}
 	for k, v in pairs(props or {}) do p[k] = v end
@@ -72,26 +72,43 @@ function B.Label(parent, o, ctx)
 end
 
 ----------------------------------------------------------------------- Button
+-- Options: Name, Callback, Primary (big glowing call-to-action button), Height.
 function B.Button(parent, o, ctx)
 	local T, m = ctx.Theme, Maid.new()
+	local primary = o.Primary == true
+	local height = o.Height or (primary and 44 or 38)
+	local holder = Create("Frame", { Size = UDim2.new(1, 0, 0, height), BackgroundTransparency = 1, Parent = parent })
+	local glow = primary and Util.Glow(holder, T, { Corner = 10, Layers = 3, Step = 3, Alpha = 0.8 }) or nil
+	local idle = primary and 0.82 or 0.45
 	local btn = Create("TextButton", {
-		Size = UDim2.new(1, 0, 0, 36), BackgroundColor3 = T.Colors.Surface2, BackgroundTransparency = 0.3,
-		AutoButtonColor = false, Text = o.Name or "Button", Font = Enum.Font.GothamMedium, TextSize = 14,
-		TextColor3 = T.Colors.Text, BorderSizePixel = 0, Parent = parent,
+		Size = UDim2.fromScale(1, 1), BackgroundColor3 = primary and T.Colors.Accent or T.Colors.Surface2, BackgroundTransparency = idle,
+		AutoButtonColor = false, Text = primary and Util.Upper(o.Name or "Button") or (o.Name or "Button"), Font = primary and T.Fonts.Title or T.Fonts.Text,
+		TextSize = primary and 17 or 15, TextColor3 = primary and T.Colors.Accent2 or T.Colors.Text, BorderSizePixel = 0, Parent = holder,
 	})
-	Util.Corner(btn, 8)
-	local stroke = Util.Stroke(btn, T.Colors.Accent, 1, 0.5)
+	Util.Corner(btn, 10)
+	local stroke = Util.Stroke(btn, T.Colors.Accent, primary and 2 or 1.5, primary and 0.05 or 0.35)
 	m:Give(T:Bind(stroke, "Color", "Accent"))
+	if primary then
+		m:Give(T:Bind(btn, "BackgroundColor3", "Accent"))
+		m:Give(T:Bind(btn, "TextColor3", "Accent2"))
+	end
 
-	btn.MouseEnter:Connect(function() Tween(btn, { BackgroundColor3 = T.Colors.Accent, BackgroundTransparency = 0.7 }) end)
-	btn.MouseLeave:Connect(function() Tween(btn, { BackgroundColor3 = T.Colors.Surface2, BackgroundTransparency = 0.3 }) end)
-	btn.MouseButton1Down:Connect(function() Tween(btn, { BackgroundTransparency = 0.45 }, 0.08) end)
-	btn.MouseButton1Up:Connect(function() Tween(btn, { BackgroundTransparency = 0.7 }, 0.08) end)
+	btn.MouseEnter:Connect(function()
+		Tween(btn, { BackgroundColor3 = T.Colors.Accent, BackgroundTransparency = primary and 0.6 or 0.75 })
+		Tween(stroke, { Transparency = 0 })
+	end)
+	btn.MouseLeave:Connect(function()
+		Tween(btn, { BackgroundTransparency = idle })
+		Tween(stroke, { Transparency = primary and 0.05 or 0.35 })
+	end)
+	btn.MouseButton1Down:Connect(function() Tween(btn, { BackgroundTransparency = 0.5 }, 0.08) end)
+	btn.MouseButton1Up:Connect(function() Tween(btn, { BackgroundTransparency = primary and 0.6 or 0.75 }, 0.08) end)
 	btn.MouseButton1Click:Connect(function() safe(o.Callback) end)
 
-	local el = { Value = nil }
-	function el:Set(text) btn.Text = text end
-	return Finish(ctx, o, el, btn, m)
+	local el = { Value = nil, Button = btn }
+	function el:Set(text) btn.Text = primary and Util.Upper(text) or text end
+	m:Give({ Destroy = function() if glow then glow:Destroy() end end })
+	return Finish(ctx, o, el, holder, m)
 end
 
 ----------------------------------------------------------------------- Toggle
@@ -105,6 +122,7 @@ function B.Toggle(parent, o, ctx)
 		BackgroundColor3 = T.Colors.Surface, BorderSizePixel = 0, Parent = row,
 	})
 	Util.Corner(track, 11)
+	local tStroke = Util.Stroke(track, T.Colors.Accent, 1.5, 0.3)
 	local knob = Create("Frame", {
 		AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 3, 0.5, 0), Size = UDim2.fromOffset(16, 16),
 		BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, Parent = track,
@@ -116,6 +134,7 @@ function B.Toggle(parent, o, ctx)
 	local function render(t)
 		Tween(knob, { Position = el.Value and UDim2.new(1, -19, 0.5, 0) or UDim2.new(0, 3, 0.5, 0) }, t)
 		Tween(track, { BackgroundColor3 = el.Value and T.Colors.Accent or T.Colors.Surface }, t)
+		Tween(tStroke, { Color = el.Value and T.Colors.Accent or T.Colors.Stroke, Transparency = el.Value and 0 or 0.3 }, t)
 	end
 	function el:Set(v, silent)
 		el.Value = v and true or false
@@ -154,6 +173,7 @@ function B.Slider(parent, o, ctx)
 		BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ZIndex = 2, Parent = track,
 	})
 	Util.Corner(knob, 7)
+	m:Give(T:Bind(Util.Stroke(knob, T.Colors.Accent, 2, 0), "Color", "Accent"))
 	local hit = Create("TextButton", {
 		AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.fromScale(0, 0.5), Size = UDim2.new(1, 0, 0, 24),
 		BackgroundTransparency = 1, Text = "", Parent = track,
@@ -195,7 +215,7 @@ function B.Keybind(parent, o, ctx)
 
 	local btn = Create("TextButton", {
 		AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0), Size = UDim2.fromOffset(96, 24),
-		BackgroundColor3 = T.Colors.Surface, AutoButtonColor = false, Font = Enum.Font.GothamMedium, TextSize = 12,
+		BackgroundColor3 = T.Colors.Surface, AutoButtonColor = false, Font = T.Fonts.Text, TextSize = 12,
 		TextColor3 = T.Colors.Text, Text = "", BorderSizePixel = 0, Parent = row,
 	})
 	Util.Corner(btn, 6)
@@ -242,7 +262,7 @@ function B.Input(parent, o, ctx)
 	local box = Create("TextBox", {
 		Position = UDim2.fromOffset(10, 30), Size = UDim2.new(1, -20, 0, 26), BackgroundColor3 = T.Colors.Surface,
 		BorderSizePixel = 0, Text = o.Default or "", PlaceholderText = o.Placeholder or "Type here...",
-		PlaceholderColor3 = T.Colors.SubText, TextColor3 = T.Colors.Text, Font = Enum.Font.Gotham, TextSize = 13,
+		PlaceholderColor3 = T.Colors.SubText, TextColor3 = T.Colors.Text, Font = T.Fonts.Text, TextSize = 13,
 		TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = o.ClearOnFocus == true, Parent = row,
 	})
 	Util.Corner(box, 6)
@@ -325,7 +345,7 @@ function B.Dropdown(parent, o, ctx)
 		for i, opt in ipairs(options) do
 			local b = Create("TextButton", {
 				LayoutOrder = i, Size = UDim2.new(1, 0, 0, 26), BackgroundColor3 = T.Colors.Surface, BackgroundTransparency = 0.4,
-				AutoButtonColor = false, Text = tostring(opt), Font = Enum.Font.GothamMedium, TextSize = 13,
+				AutoButtonColor = false, Text = tostring(opt), Font = T.Fonts.Text, TextSize = 13,
 				TextColor3 = T.Colors.Text, BorderSizePixel = 0, Parent = list,
 			})
 			b:SetAttribute("Option", opt)
@@ -590,7 +610,7 @@ function B.ColorPicker(parent, o, ctx)
 		local function field(x, w, caption)
 			local box = Create("TextBox", {
 				Position = UDim2.fromOffset(x, 0), Size = UDim2.fromOffset(w, 28), BackgroundColor3 = T.Colors.Surface, BorderSizePixel = 0,
-				Text = "", PlaceholderText = "", TextColor3 = T.Colors.Text, Font = Enum.Font.GothamMedium, TextSize = 12,
+				Text = "", PlaceholderText = "", TextColor3 = T.Colors.Text, Font = T.Fonts.Text, TextSize = 12,
 				ClearTextOnFocus = false, Parent = row,
 			})
 			Util.Corner(box, 6)
@@ -599,7 +619,7 @@ function B.ColorPicker(parent, o, ctx)
 			box.FocusLost:Connect(function() Tween(stroke, { Color = T.Colors.Stroke, Transparency = 0.5 }) end)
 			Create("TextLabel", {
 				Position = UDim2.fromOffset(x, 32), Size = UDim2.fromOffset(w, 14), BackgroundTransparency = 1, Text = caption,
-				Font = Enum.Font.GothamMedium, TextSize = 12, TextColor3 = T.Colors.SubText, Parent = row,
+				Font = T.Fonts.Text, TextSize = 12, TextColor3 = T.Colors.SubText, Parent = row,
 			})
 			return box
 		end

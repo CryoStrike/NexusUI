@@ -49,6 +49,50 @@ function Util.Padding(parent, t, r, b, l)
 	})
 end
 
+-- Upper-case that also handles accented Latin letters (Roblox's string.upper only does A-Z):
+-- "À propos" -> "À PROPOS", "Paramètres" -> "PARAMÈTRES".
+function Util.Upper(s)
+	s = string.upper(tostring(s or ""))
+	return (s:gsub("\195([\160-\190])", function(c)
+		if c == "\183" then return nil end -- the division sign has no upper-case form
+		return "\195" .. string.char(c:byte() - 32)
+	end))
+end
+
+-- Neon glow around `parent`: concentric border rings that fade out, drawn OUTSIDE the parent.
+-- Create it BEFORE the object it sits behind (siblings draw in creation order) and do not put
+-- it inside a frame that clips its descendants.
+--   opts: Corner (corner radius of the object, default 12), Layers (default 4), Step (ring width, default 3),
+--         Alpha (transparency of the innermost ring, default 0.78), Decay (how fast it fades, default 0.55)
+-- Returns { Frame, SetVisible(bool), Destroy() }. The rings follow the accent colour live.
+function Util.Glow(parent, theme, opts)
+	opts = opts or {}
+	local layers, step, corner = opts.Layers or 4, opts.Step or 3, opts.Corner or 12
+	local base, decay = opts.Alpha or 0.78, opts.Decay or 0.55
+	local holder = Util.Create("Frame", {
+		Name = "Glow", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, Parent = parent,
+	})
+	local entries = {}
+	for i = 1, layers do
+		local off = (i - 1) * step
+		local ring = Util.Create("Frame", {
+			Name = "Ring" .. i, Position = UDim2.fromOffset(-off, -off), Size = UDim2.new(1, 2 * off, 1, 2 * off),
+			BackgroundTransparency = 1, BorderSizePixel = 0, Parent = holder,
+		})
+		Util.Corner(ring, corner + off)
+		local stroke = Util.Stroke(ring, theme.Colors.Accent, step, 1 - (1 - base) * decay ^ (i - 1))
+		table.insert(entries, theme:Bind(stroke, "Color", "Accent"))
+	end
+	local glow = { Frame = holder }
+	function glow:SetVisible(state) holder.Visible = state end
+	function glow:Destroy()
+		for _, e in ipairs(entries) do e:Destroy() end
+		table.clear(entries)
+		holder:Destroy()
+	end
+	return glow
+end
+
 function Util.SafeCall(fn, ...)
 	if type(fn) ~= "function" then return end
 	local ok, err = pcall(fn, ...)

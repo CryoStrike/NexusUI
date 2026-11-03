@@ -8,9 +8,9 @@ local Components = import("Components")
 local TweenService = game:GetService("TweenService")
 local Create, Tween = Util.Create, Util.Tween
 
-local CARD_W = 380
-local LOAD_H = 232 -- card height while loading
-local LANG_H = 282 -- card height on the language step (grows while the dropdown is open)
+local CARD_W = 420
+local LOAD_H = 240 -- card height while loading
+local LANG_H = 292 -- card height on the language step (grows while the dropdown is open)
 local GROUP_Y = 150
 
 local Loader = {}
@@ -25,11 +25,12 @@ Loader.__index = Loader
 	Steps            {string}  status lines shown while the bar fills
 	Duration         number    seconds for the whole bar     (default 3)
 	ReadyText        string    shown when the bar is full    (default "Ready")
+	ProgressText     string    text under the bar, %d = percent (default "CORE MODULES LOADED (%d%%)")
 	Languages        {string}  languages to choose from; omit to skip the language step
 	DefaultLanguage  string    preselected language          (default: first one)
 	LanguageTitle    string    heading above the dropdown    (default "Select language")
 	LanguageLabel    string    label inside the dropdown     (default "Language")
-	ContinueText     string    button text                   (default "Continue")
+	ContinueText     string    button text                   (default "Continue", shown in capitals)
 ]]
 function Loader.new(options)
 	local self = setmetatable({}, Loader)
@@ -58,15 +59,20 @@ function Loader.new(options)
 		BorderSizePixel = 0, Active = true, Parent = gui,
 	})
 
-	local card = Create("Frame", {
-		Name = "Card", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0.5, -150), Size = UDim2.fromOffset(CARD_W, LOAD_H),
-		BackgroundColor3 = T.Colors.Background, BackgroundTransparency = T.Transparency, BorderSizePixel = 0,
-		ClipsDescendants = true, Parent = gui,
+	-- shell: does not clip (the neon glow lives outside it); card: the clipping glass body inside it
+	local shell = Create("Frame", {
+		Name = "Shell", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0.5, -150), Size = UDim2.fromOffset(CARD_W, LOAD_H),
+		BackgroundTransparency = 1, Parent = gui,
 	})
-	self._card = card
-	self._scale = Create("UIScale", { Scale = 0.9, Parent = card })
-	Util.Corner(card, 12)
-	T:Bind(Util.Stroke(card, T.Colors.Accent, 1.5, 0.35), "Color", "Accent")
+	self._card = shell
+	self._scale = Create("UIScale", { Scale = 0.9, Parent = shell })
+	Util.Glow(shell, T, { Corner = 14, Layers = 4, Step = 3, Alpha = 0.8 })
+	local card = Create("Frame", {
+		Name = "Card", Size = UDim2.fromScale(1, 1), BackgroundColor3 = T.Colors.Background, BackgroundTransparency = T.Transparency,
+		BorderSizePixel = 0, ClipsDescendants = true, Parent = shell,
+	})
+	Util.Corner(card, 14)
+	T:Bind(Util.Stroke(card, T.Colors.Accent, 2, 0.05), "Color", "Accent")
 	Create("UIGradient", {
 		Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(175, 195, 220)), Parent = card,
 	})
@@ -85,11 +91,11 @@ function Loader.new(options)
 
 	Create("TextLabel", {
 		Position = UDim2.fromOffset(0, 84), Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 1, Text = options.Name or "NEXUS",
-		Font = Enum.Font.GothamBold, TextSize = 26, TextColor3 = T.Colors.Text, Parent = card,
+		Font = T.Fonts.Title, TextSize = 30, TextColor3 = T.Colors.Text, Parent = card,
 	})
 	local sub = Create("TextLabel", {
-		Position = UDim2.fromOffset(0, 114), Size = UDim2.new(1, 0, 0, 16), BackgroundTransparency = 1, Text = options.Subtitle or "",
-		Font = Enum.Font.GothamMedium, TextSize = 12, Parent = card,
+		Position = UDim2.fromOffset(0, 114), Size = UDim2.new(1, 0, 0, 16), BackgroundTransparency = 1, Text = Util.Upper(options.Subtitle or ""),
+		Font = T.Fonts.Title, TextSize = 13, Parent = card,
 	})
 	T:Bind(sub, "TextColor3", "Accent")
 
@@ -99,25 +105,30 @@ function Loader.new(options)
 	})
 	self._loadGroup = loadGroup
 	self._statusLbl = Create("TextLabel", {
-		Size = UDim2.new(1, 0, 0, 18), BackgroundTransparency = 1, Text = "", Font = Enum.Font.GothamMedium, TextSize = 13,
+		Size = UDim2.new(1, 0, 0, 18), BackgroundTransparency = 1, Text = "", Font = T.Fonts.Text, TextSize = 14,
 		TextColor3 = T.Colors.SubText, Parent = loadGroup,
 	})
 	local track = Create("Frame", {
-		Position = UDim2.fromOffset(0, 28), Size = UDim2.new(1, 0, 0, 6), BackgroundColor3 = T.Colors.Surface,
+		Position = UDim2.fromOffset(0, 28), Size = UDim2.new(1, 0, 0, 8), BackgroundColor3 = T.Colors.Surface,
 		BorderSizePixel = 0, Parent = loadGroup,
 	})
-	Util.Corner(track, 3)
+	Util.Corner(track, 4)
+	T:Bind(Util.Stroke(track, T.Colors.Accent, 1, 0.6), "Color", "Accent")
 	local fill = Create("Frame", { Size = UDim2.fromScale(0, 1), BorderSizePixel = 0, Parent = track })
-	Util.Corner(fill, 3)
+	Util.Corner(fill, 4)
 	T:Bind(fill, "BackgroundColor3", "Accent")
 	self._fill = fill
 	local pct = Create("TextLabel", {
-		Position = UDim2.fromOffset(0, 40), Size = UDim2.new(1, 0, 0, 16), BackgroundTransparency = 1, Text = "0%",
-		Font = Enum.Font.GothamBold, TextSize = 12, TextColor3 = T.Colors.Accent2, Parent = loadGroup,
+		Position = UDim2.fromOffset(0, 40), Size = UDim2.new(1, 0, 0, 16), BackgroundTransparency = 1, Text = "",
+		Font = T.Fonts.Title, TextSize = 13, TextColor3 = T.Colors.Accent2, Parent = loadGroup,
 	})
-	self.Maid:Give(fill:GetPropertyChangedSignal("Size"):Connect(function()
-		pct.Text = math.floor(fill.Size.X.Scale * 100 + 0.5) .. "%"
-	end))
+	local progressText = options.ProgressText or "CORE MODULES LOADED (%d%%)"
+	local function showPercent()
+		local ok, text = pcall(string.format, progressText, math.floor(fill.Size.X.Scale * 100 + 0.5))
+		pct.Text = ok and text or progressText
+	end
+	showPercent()
+	self.Maid:Give(fill:GetPropertyChangedSignal("Size"):Connect(showPercent))
 
 	-- Language group (hidden until the bar is full)
 	if hasLanguages then
@@ -128,17 +139,17 @@ function Loader.new(options)
 		})
 		self._langGroup = langGroup
 		Create("TextLabel", {
-			Size = UDim2.new(1, 0, 0, 18), BackgroundTransparency = 1, Text = string.upper(options.LanguageTitle or "Select language"),
-			Font = Enum.Font.GothamBold, TextSize = 12, TextColor3 = T.Colors.Accent2, TextXAlignment = Enum.TextXAlignment.Left,
+			Size = UDim2.new(1, 0, 0, 18), BackgroundTransparency = 1, Text = Util.Upper(options.LanguageTitle or "Select language"),
+			Font = T.Fonts.Title, TextSize = 13, TextColor3 = T.Colors.Accent2, TextXAlignment = Enum.TextXAlignment.Left,
 			Parent = langGroup,
 		})
 
 		local selected = self._defaultLanguage
 		local cont = Components.Builders.Button(langGroup, {
-			Name = options.ContinueText or "Continue",
+			Name = options.ContinueText or "Continue", Primary = true,
 			Callback = function() self:_finish(selected) end,
 		}, ctx)
-		cont.Frame.Position = UDim2.fromOffset(0, 76)
+		cont.Frame.Position = UDim2.fromOffset(0, 80)
 
 		local dd = Components.Builders.Dropdown(langGroup, {
 			Name = options.LanguageLabel or "Language", Options = languages, Default = self._defaultLanguage,
@@ -150,7 +161,7 @@ function Loader.new(options)
 		self.Maid:Give(dd.Frame:GetPropertyChangedSignal("Size"):Connect(function()
 			if self._phase ~= "lang" then return end
 			local extra = math.max(0, dd.Frame.Size.Y.Offset - 38)
-			cont.Frame.Position = UDim2.fromOffset(0, 76 + extra)
+			cont.Frame.Position = UDim2.fromOffset(0, 80 + extra)
 			card.Size = UDim2.fromOffset(CARD_W, LANG_H + extra)
 		end))
 	end

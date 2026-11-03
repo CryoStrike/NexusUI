@@ -1,28 +1,49 @@
--- Theme: colour palette + listeners so the accent can change live.
+-- Theme: colour palette + fonts + listeners so the accent can change live.
 local TweenService = game:GetService("TweenService")
 
 local Theme = {}
 Theme.__index = Theme
 
+-- Neon cyan on dark glass (matches the Translucid reference look).
 Theme.Defaults = {
-	Background = Color3.fromRGB(8, 16, 28),
-	Surface    = Color3.fromRGB(14, 26, 44),
-	Surface2   = Color3.fromRGB(22, 40, 66),
-	Stroke     = Color3.fromRGB(45, 95, 145),
-	Text       = Color3.fromRGB(228, 238, 250),
-	SubText    = Color3.fromRGB(125, 150, 182),
-	Accent     = Color3.fromRGB(0, 170, 255),   -- electric blue
-	Accent2    = Color3.fromRGB(230, 190, 100), -- gold (from the logo)
-	Success    = Color3.fromRGB(80, 220, 140),
-	Warning    = Color3.fromRGB(240, 190, 80),
-	Danger     = Color3.fromRGB(255, 90, 100),
+	Background = Color3.fromRGB(6, 15, 24),
+	Surface    = Color3.fromRGB(10, 28, 42),
+	Surface2   = Color3.fromRGB(13, 38, 54),
+	Stroke     = Color3.fromRGB(28, 100, 128),
+	Text       = Color3.fromRGB(228, 246, 255),
+	SubText    = Color3.fromRGB(125, 170, 190),
+	Accent     = Color3.fromRGB(0, 224, 255),    -- neon cyan
+	Accent2    = Color3.fromRGB(120, 236, 255),  -- light cyan (secondary highlights)
+	Success    = Color3.fromRGB(70, 235, 150),
+	Warning    = Color3.fromRGB(255, 205, 90),
+	Danger     = Color3.fromRGB(255, 95, 110),
 }
 
+-- Fonts, with a safe fallback if this Roblox version does not know the font.
+--   Title : tab names, section pills, buttons, window title      (techy, squared)
+--   Text  : labels, values, body text                            (clean, slightly condensed)
+local function pick(name, fallback)
+	local ok, font = pcall(function() return Enum.Font[name] end)
+	return (ok and font) or fallback
+end
+Theme.DefaultFonts = {
+	Title = pick("Sarpanch", Enum.Font.GothamBold),
+	Text = pick("TitilliumWeb", Enum.Font.GothamMedium),
+}
+
+-- overrides: { Background = Color3, ..., Fonts = { Title = Enum.Font.X, Text = Enum.Font.Y } }
 function Theme.new(overrides)
-	local self = setmetatable({ Colors = {}, Transparency = 0.12, _listeners = {} }, Theme)
+	local self = setmetatable({ Colors = {}, Fonts = {}, Transparency = 0.18, _listeners = {} }, Theme)
 	for k, v in pairs(Theme.Defaults) do self.Colors[k] = v end
+	for k, v in pairs(Theme.DefaultFonts) do self.Fonts[k] = v end
 	for k, v in pairs(overrides or {}) do
-		if typeof(v) == "Color3" then self.Colors[k] = v end
+		if typeof(v) == "Color3" then
+			self.Colors[k] = v
+		elseif k == "Fonts" and type(v) == "table" then
+			for fontKey, font in pairs(v) do
+				if typeof(font) == "EnumItem" then self.Fonts[fontKey] = font end
+			end
+		end
 	end
 	return self
 end

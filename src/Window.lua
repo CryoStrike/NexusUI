@@ -7,7 +7,12 @@ local Notifications = import("Notifications")
 local UserInputService = game:GetService("UserInputService")
 local Create, Tween = Util.Create, Util.Tween
 
-local SIDEBAR_W, HEADER_H = 88, 52
+-- Layout (design pixels)
+local SIDEBAR_W = 112 -- left column: logo + category buttons
+local MARGIN = 12     -- gap between the content panel and the window edge
+local HEADER_H = 56   -- title row of the content panel
+local FOOTER_H = 26   -- status line under the sidebar
+local LOGO = 52
 
 local Window = {}
 Window.__index = Window
@@ -19,10 +24,12 @@ Window.__index = Window
 	Accent     Color3   accent colour
 	Size       UDim2    offset size (clamped to the viewport)
 	ToggleKey  Enum.KeyCode  show/hide key              (default RightShift)
-	Theme      table    palette overrides { Background = Color3, ... }
+	Theme      table    palette overrides { Background = Color3, ..., Fonts = { Title = Enum.Font.X, Text = Enum.Font.Y } }
 	Resizable  boolean  show a resize grip in the bottom-right corner (default false)
 	MinSize    Vector2  smallest size when resizing       (default 520 x 340)
 	MaxSize    Vector2  largest size when resizing        (default viewport - 40)
+	TabHeight  number   fixed height of a category tile       (default: automatic, tiles share the sidebar height, 52-76)
+	Footer     string   status line at the bottom-left (RichText allowed, e.g. 'STATUS: <font color="rgb(0,224,255)">ACTIVE</font>')
 ]]
 function Window.new(options)
 	local self = setmetatable({}, Window)
@@ -33,6 +40,7 @@ function Window.new(options)
 	self.Flags, self.Tabs, self.Visible = {}, {}, true
 	self.ToggleKey = options.ToggleKey or Enum.KeyCode.RightShift
 	self.Ctx = { Theme = self.Theme, Maid = self.Maid, Flags = self.Flags, Window = self }
+	self._tabHeight = options.TabHeight -- nil = automatic
 	local T = self.Theme
 
 	local size = options.Size or UDim2.fromOffset(640, 430)
@@ -48,54 +56,81 @@ function Window.new(options)
 	Util.MountGui(gui)
 	self.Gui = self.Maid:Give(gui)
 
+	-- Window body: dark translucent glass. It does not clip, so glows can reach beyond the children.
 	local main = Create("Frame", {
 		Name = "Main", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = size,
-		BackgroundColor3 = T.Colors.Background, BackgroundTransparency = T.Transparency, BorderSizePixel = 0,
-		ClipsDescendants = true, Parent = gui,
+		BackgroundColor3 = T.Colors.Background, BackgroundTransparency = T.Transparency, BorderSizePixel = 0, Parent = gui,
 	})
 	self._main = main
 	self._scale = Create("UIScale", { Scale = 0.92, Parent = main })
-	Util.Corner(main, 12)
-	T:Bind(Util.Stroke(main, T.Colors.Accent, 1.5, 0.35), "Color", "Accent")
+	Util.Corner(main, 14)
+	T:Bind(Util.Stroke(main, T.Colors.Accent, 1, 0.7), "Color", "Accent")
 	Create("UIGradient", {
-		Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(175, 195, 220)), Parent = main,
+		Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(170, 195, 215)), Parent = main,
 	})
 
-	-- Sidebar (logo + tab buttons)
-	local sidebar = Create("Frame", {
-		Size = UDim2.new(0, SIDEBAR_W, 1, 0), BackgroundColor3 = T.Colors.Surface, BackgroundTransparency = 0.25, BorderSizePixel = 0, Parent = main,
-	})
-	Create("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = UDim2.new(0, 1, 1, 0), BackgroundColor3 = T.Colors.Stroke, BackgroundTransparency = 0.5, BorderSizePixel = 0, Parent = sidebar })
+	-- Sidebar: logo + floating category buttons (see Tab.lua)
 	Create("ImageLabel", {
-		Name = "Logo", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 10), Size = UDim2.fromOffset(56, 56),
-		BackgroundTransparency = 1, Image = Util.GetAsset(options.Icon), ScaleType = Enum.ScaleType.Fit, Parent = sidebar,
+		Name = "Logo", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0, SIDEBAR_W / 2 + 2, 0, MARGIN + 2), Size = UDim2.fromOffset(LOGO, LOGO),
+		BackgroundTransparency = 1, Image = Util.GetAsset(options.Icon), ScaleType = Enum.ScaleType.Fit, Parent = main,
 	})
+	local listTop = MARGIN + 2 + LOGO + 10
+	self._listTop = listTop
 	self._tabList = Create("ScrollingFrame", {
-		Position = UDim2.fromOffset(0, 78), Size = UDim2.new(1, 0, 1, -78), BackgroundTransparency = 1, BorderSizePixel = 0,
-		ScrollBarThickness = 0, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, Parent = sidebar,
+		Name = "Categories", Position = UDim2.fromOffset(0, listTop), Size = UDim2.new(0, SIDEBAR_W, 1, -(listTop + FOOTER_H)),
+		BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 2, ScrollingDirection = Enum.ScrollingDirection.Y,
+		CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, Parent = main,
 	})
-	Create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = self._tabList })
+	T:Bind(self._tabList, "ScrollBarImageColor3", "Accent")
+	Util.Padding(self._tabList, 6, 8, 6, 12)
+	Create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = self._tabList })
+
+	-- Status line (bottom-left)
+	if type(options.Footer) == "string" and options.Footer ~= "" then
+		Create("TextLabel", {
+			Name = "Footer", Position = UDim2.new(0, 16, 1, -FOOTER_H), Size = UDim2.new(1, -64, 0, FOOTER_H), BackgroundTransparency = 1,
+			Text = options.Footer, RichText = true, Font = T.Fonts.Text, TextSize = 13, TextColor3 = T.Colors.SubText,
+			TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = main,
+		})
+	end
+
+	-- Content panel: glowing neon border around the title row + the pages
+	local holder = Create("Frame", {
+		Name = "PanelHolder", Position = UDim2.fromOffset(SIDEBAR_W, MARGIN), Size = UDim2.new(1, -(SIDEBAR_W + MARGIN), 1, -(MARGIN + FOOTER_H)),
+		BackgroundTransparency = 1, Parent = main,
+	})
+	self._glow = Util.Glow(holder, T, { Corner = 12, Layers = 4, Step = 3, Alpha = 0.8 })
+	local panel = Create("Frame", {
+		Name = "Panel", Size = UDim2.fromScale(1, 1), BackgroundColor3 = T.Colors.Surface, BackgroundTransparency = 0.25,
+		BorderSizePixel = 0, ClipsDescendants = true, Parent = holder,
+	})
+	Util.Corner(panel, 12)
+	T:Bind(Util.Stroke(panel, T.Colors.Accent, 2, 0.05), "Color", "Accent")
 
 	-- Header (title + window buttons) - drag handle
-	local header = Create("Frame", { Position = UDim2.fromOffset(SIDEBAR_W, 0), Size = UDim2.new(1, -SIDEBAR_W, 0, HEADER_H), BackgroundTransparency = 1, Parent = main })
+	local header = Create("Frame", { Name = "Header", Size = UDim2.new(1, 0, 0, HEADER_H), BackgroundTransparency = 1, Parent = panel })
 	Create("TextLabel", {
-		Position = UDim2.fromOffset(16, 6), Size = UDim2.new(1, -110, 0, 26), BackgroundTransparency = 1, Text = options.Name or "NEXUS",
-		Font = Enum.Font.GothamBold, TextSize = 24, TextColor3 = T.Colors.Text, TextXAlignment = Enum.TextXAlignment.Left, Parent = header,
+		Position = UDim2.fromOffset(18, 6), Size = UDim2.new(1, -110, 0, 30), BackgroundTransparency = 1, Text = options.Name or "NEXUS",
+		Font = T.Fonts.Title, TextSize = 28, TextColor3 = T.Colors.Text, TextXAlignment = Enum.TextXAlignment.Left, Parent = header,
 	})
 	local sub = Create("TextLabel", {
-		Position = UDim2.fromOffset(16, 32), Size = UDim2.new(1, -110, 0, 16), BackgroundTransparency = 1, Text = options.Subtitle or "",
-		Font = Enum.Font.GothamMedium, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, Parent = header,
+		Position = UDim2.fromOffset(18, 35), Size = UDim2.new(1, -110, 0, 16), BackgroundTransparency = 1, Text = Util.Upper(options.Subtitle or ""),
+		Font = T.Fonts.Title, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, Parent = header,
 	})
 	T:Bind(sub, "TextColor3", "Accent")
+	local divider = Create("Frame", {
+		Position = UDim2.new(0, 14, 0, HEADER_H), Size = UDim2.new(1, -28, 0, 1), BackgroundTransparency = 0.7, BorderSizePixel = 0, Parent = panel,
+	})
+	T:Bind(divider, "BackgroundColor3", "Accent")
 
 	local function headerButton(text, offset, onClick)
 		local b = Create("TextButton", {
-			AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, offset, 0.5, 0), Size = UDim2.fromOffset(28, 28),
-			BackgroundColor3 = T.Colors.Surface2, BackgroundTransparency = 1, Text = text, Font = Enum.Font.GothamBold,
-			TextSize = 18, TextColor3 = T.Colors.SubText, AutoButtonColor = false, BorderSizePixel = 0, Parent = header,
+			AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, offset, 0.5, 0), Size = UDim2.fromOffset(30, 30),
+			BackgroundColor3 = T.Colors.Accent, BackgroundTransparency = 1, Text = text, Font = T.Fonts.Title,
+			TextSize = 22, TextColor3 = T.Colors.SubText, AutoButtonColor = false, BorderSizePixel = 0, Parent = header,
 		})
-		Util.Corner(b, 6)
-		b.MouseEnter:Connect(function() Tween(b, { BackgroundTransparency = 0.4, TextColor3 = T.Colors.Text }) end)
+		Util.Corner(b, 8)
+		b.MouseEnter:Connect(function() Tween(b, { BackgroundTransparency = 0.8, TextColor3 = T.Colors.Text }) end)
 		b.MouseLeave:Connect(function() Tween(b, { BackgroundTransparency = 1, TextColor3 = T.Colors.SubText }) end)
 		b.MouseButton1Click:Connect(onClick)
 	end
@@ -108,7 +143,7 @@ function Window.new(options)
 		local minSize = options.MinSize or Vector2.new(520, 340)
 		local maxSize = options.MaxSize
 		local grip = Create("TextButton", {
-			Name = "ResizeGrip", AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -2, 1, -2), Size = UDim2.fromOffset(22, 22),
+			Name = "ResizeGrip", AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -4, 1, -4), Size = UDim2.fromOffset(22, 22),
 			BackgroundTransparency = 1, Text = "", AutoButtonColor = false, ZIndex = 10, Parent = main,
 		})
 		local dots = {}
@@ -143,6 +178,7 @@ function Window.new(options)
 				local w = math.clamp(startW + delta.X, minSize.X, math.max(minSize.X, maxW))
 				local h = math.clamp(startH + delta.Y, minSize.Y, math.max(minSize.Y, maxH))
 				main.Size = UDim2.fromOffset(w, h)
+				self:_LayoutTabs()
 				main.Position = UDim2.new(
 					startPos.X.Scale, startPos.X.Offset + (w - startW) / 2,
 					startPos.Y.Scale, startPos.Y.Offset + (h - startH) / 2
@@ -158,25 +194,29 @@ function Window.new(options)
 	end
 
 	self._pages = Create("Frame", {
-		Position = UDim2.fromOffset(SIDEBAR_W, HEADER_H), Size = UDim2.new(1, -SIDEBAR_W, 1, -HEADER_H),
-		BackgroundTransparency = 1, ClipsDescendants = true, Parent = main,
+		Name = "Pages", Position = UDim2.fromOffset(0, HEADER_H + 1), Size = UDim2.new(1, 0, 1, -(HEADER_H + 1)),
+		BackgroundTransparency = 1, ClipsDescendants = true, Parent = panel,
 	})
 
 	self.Notifier = Notifications.new(gui, T)
 
-	-- Small pill shown while the window is minimised; click it to restore.
-	local pill = Create("TextButton", {
-		Name = "MinimizedPill", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 14), Size = UDim2.fromOffset(170, 34),
-		BackgroundColor3 = T.Colors.Background, BackgroundTransparency = T.Transparency, BorderSizePixel = 0, AutoButtonColor = false,
-		Text = (options.Name or "NEXUS") .. "  -  Open", Font = Enum.Font.GothamBold, TextSize = 13, TextColor3 = T.Colors.Text,
-		Visible = false, ZIndex = 20, Parent = gui,
+	-- Small neon pill shown while the window is minimised; click it to restore.
+	local pillHolder = Create("Frame", {
+		Name = "MinimizedPill", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 16), Size = UDim2.fromOffset(180, 36),
+		BackgroundTransparency = 1, Visible = false, ZIndex = 20, Parent = gui,
 	})
-	Util.Corner(pill, 17)
-	T:Bind(Util.Stroke(pill, T.Colors.Accent, 1.5, 0.35), "Color", "Accent")
-	pill.MouseEnter:Connect(function() Tween(pill, { BackgroundTransparency = 0 }) end)
-	pill.MouseLeave:Connect(function() Tween(pill, { BackgroundTransparency = T.Transparency }) end)
+	Util.Glow(pillHolder, T, { Corner = 18, Layers = 3, Step = 3, Alpha = 0.78 })
+	local pill = Create("TextButton", {
+		Size = UDim2.fromScale(1, 1), BackgroundColor3 = T.Colors.Background, BackgroundTransparency = 0.15, BorderSizePixel = 0,
+		AutoButtonColor = false, Text = Util.Upper(options.Name or "NEXUS") .. "  -  OPEN", Font = T.Fonts.Title, TextSize = 15,
+		TextColor3 = T.Colors.Text, Parent = pillHolder,
+	})
+	Util.Corner(pill, 18)
+	T:Bind(Util.Stroke(pill, T.Colors.Accent, 2, 0.05), "Color", "Accent")
+	pill.MouseEnter:Connect(function() Tween(pill, { BackgroundTransparency = 0.4 }) end)
+	pill.MouseLeave:Connect(function() Tween(pill, { BackgroundTransparency = 0.15 }) end)
 	pill.MouseButton1Click:Connect(function() self:Toggle(true) end)
-	self._pill = pill
+	self._pill = pillHolder
 
 	self.Maid:Give(UserInputService.InputBegan:Connect(function(input, processed)
 		if not processed and input.KeyCode == self.ToggleKey then self:Toggle() end
@@ -186,9 +226,22 @@ function Window.new(options)
 	return self
 end
 
+-- Sidebar tile height: fixed (TabHeight) or shared out so all tiles fit without scrolling.
+function Window:_LayoutTabs()
+	local n = #self.Tabs
+	if n == 0 then return end
+	local h = self._tabHeight
+	if not h then
+		local avail = self._main.Size.Y.Offset - self._listTop - FOOTER_H - 12 - 6 * (n - 1)
+		h = math.clamp(math.floor(avail / n), 52, 76)
+	end
+	for _, t in ipairs(self.Tabs) do t:_SetHeight(h) end
+end
+
 function Window:CreateTab(name, icon)
 	local tab = Tab.new(self, name, icon)
 	table.insert(self.Tabs, tab)
+	self:_LayoutTabs()
 	if #self.Tabs == 1 then self:SelectTab(tab) end
 	return tab
 end

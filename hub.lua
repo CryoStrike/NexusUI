@@ -32,7 +32,7 @@ local Hub = {}
 local DEMO_KEY = "NEXUS-DEMO" -- demo only: replace with your own key check
 
 local ACCENTS = {
-	Cyan = Color3.fromRGB(0, 170, 255), Violet = Color3.fromRGB(150, 110, 255),
+	Cyan = Color3.fromRGB(0, 224, 255), Violet = Color3.fromRGB(150, 110, 255),
 	Emerald = Color3.fromRGB(40, 210, 140), Crimson = Color3.fromRGB(255, 80, 100), Gold = Color3.fromRGB(230, 190, 100),
 }
 Hub.Accent = ACCENTS.Cyan -- accent used by the loading screen (init.lua) and by the first hub
@@ -266,9 +266,10 @@ function Hub.Build(rebuilt)
 		Icon = Config.Icon, -- or "rbxassetid://<uploaded logo id>"
 		Accent = state.customAccent or ACCENTS[state.accentName],
 		ToggleKey = state.toggleKey,
-		Size = UDim2.fromOffset(700, 500),
+		Size = UDim2.fromOffset(720, 540),
+		Footer = tr("footer", Nexus.Version),
 		Resizable = true,
-		MinSize = Vector2.new(560, 360),
+		MinSize = Vector2.new(600, 440),
 	})
 
 	for _, category in ipairs(CATEGORIES) do

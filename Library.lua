@@ -46,7 +46,7 @@ end
 local WindowClass = import("Window")
 local LoaderClass = import("Loader")
 
-local Nexus = { Version = "0.2.0", Windows = {}, Loaders = {} }
+local Nexus = { Version = "0.3.0", Windows = {}, Loaders = {} }
 
 -- Shows the animated loading screen (optionally with a language picker) and yields until it is done.
 -- Returns the chosen language, or nil if the loader was closed early. See src/Loader.lua for the options.
